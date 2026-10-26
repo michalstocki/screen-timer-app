@@ -34,7 +34,13 @@ i po 30 minutach przysłania ekran na 30-minutową przerwę.
 
 Ograniczenia: Ctrl+Alt+Del obsługuje Windows i nie da się go zablokować (z tego ekranu da się wylogować, ale przerwa dalej biegnie). Konto z uprawnieniami administratora może zatrzymać usługę, więc ochrona jest skuteczna dla kont standardowych.
 
-## Instalacja
+## Instalacja z pakietu MSI (zalecana)
+
+Z wydania pobierz plik dla swojej architektury: `ScreenTimer-<wersja>-win-x64.msi` (zwykły PC), `win-arm64` (np. Surface Pro X, Copilot+ PC) lub `win-x86` (32-bitowy Windows). Uruchom go; instalator poprosi o uprawnienia administratora, zainstaluje usługę w `Program Files\ScreenTimer` i otworzy ustawienia, w których wybierasz konta objęte limitem i ustawiasz kod. Później ustawienia otworzysz skrótem „Limit czasu – ustawienia" w menu Start. Instalacja bez okien: `msiexec /i ScreenTimer-0.0.1-win-x64.msi /qn`. Aktualizacja to uruchomienie nowszego MSI. Odinstalowanie: Ustawienia → Aplikacje (kod i konfiguracja w `%ProgramData%\ScreenTimer` zostają).
+
+Pakiety ZIP z tych samych wydań zawierają folder `app\` oraz skrypty `install.ps1` i `uninstall.ps1` (opis poniżej).
+
+## Instalacja ze skryptów
 
 Wymagane: PowerShell jako administrator. Na docelowym komputerze nie trzeba instalować .NET.
 
@@ -68,6 +74,14 @@ Odinstalowanie: `.\scripts\uninstall.ps1` (z `-RemoveData` usuwa też kod i stan
 `LimitedAccounts` najwygodniej zmieniać w oknie ustawień. Starsze pole `ExemptAccounts` nie jest już używane.
 
 Dziennik usługi: `%ProgramData%\ScreenTimer\service.log`. Dziennik błędów interfejsu: `%LOCALAPPDATA%\ScreenTimer\app.log`.
+
+## Budowanie wydania
+
+```powershell
+.\scripts\release.ps1 -Version 0.0.1     # dist\release: MSI i ZIP dla win-x64, win-arm64 i win-x86
+```
+
+Skrypt sam pobiera WiX 5 do `.tools\` (poza gitem). MSI definiuje `installer\Package.wxs`.
 
 ## Rozwój
 

@@ -4,7 +4,8 @@
 # Accounts can also be chosen later in the app's settings.
 #Requires -RunAsAdministrator
 param(
-    [string]$PublishDir = (Join-Path (Split-Path $PSScriptRoot -Parent) 'dist\publish'),
+    # In a release ZIP the app sits in .\app next to this script; in the repo it is in dist\publish.
+    [string]$PublishDir = $(if (Test-Path (Join-Path $PSScriptRoot 'app\ScreenTimer.exe')) { Join-Path $PSScriptRoot 'app' } else { Join-Path (Split-Path $PSScriptRoot -Parent) 'dist\publish' }),
     [string]$InstallDir = (Join-Path $env:ProgramFiles 'ScreenTimer'),
     # Accounts the app runs for and whose time it counts (names such as kid1 or PC\kid1).
     [string[]]$LimitedAccount = @()

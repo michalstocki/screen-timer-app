@@ -2,5 +2,7 @@ bin/
 obj/
 dist/
 .dotnet/
+.tools/
+.wix/
 .vs/
 *.user

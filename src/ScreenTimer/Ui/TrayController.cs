@@ -206,7 +206,7 @@ internal sealed class TrayController : IDisposable
     {
         try
         {
-            Process.Start(new ProcessStartInfo(Environment.ProcessPath!, "--settings")
+            Process.Start(new ProcessStartInfo(Environment.ProcessPath!, "--settings --elevated")
             {
                 UseShellExecute = true,
                 Verb = "runas",

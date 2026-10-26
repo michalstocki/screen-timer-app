@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.ServiceProcess;
 using System.Threading;
@@ -27,11 +29,29 @@ internal static class Program
         var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         app.DispatcherUnhandledException += OnUnhandled;
 
-        return flags.Contains("--settings") ? RunSettings(app) : RunTray(app, args, flags);
+        return flags.Contains("--settings") ? RunSettings(app, flags.Contains("--elevated")) : RunTray(app, args, flags);
     }
 
-    static int RunSettings(Application app)
+    static int RunSettings(Application app, bool alreadyRelaunched)
     {
+        // Started from the Start menu without elevation: ask Windows for an administrator and hand over.
+        if (!alreadyRelaunched && !SettingsWindow.IsAdministrator())
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(Environment.ProcessPath!, "--settings --elevated")
+                {
+                    UseShellExecute = true,
+                    Verb = "runas",
+                });
+            }
+            catch (Win32Exception)
+            {
+                // The user cancelled the elevation prompt.
+            }
+            return 0;
+        }
+
         var window = new SettingsWindow();
         window.Closed += (_, _) => app.Shutdown();
         window.Show();

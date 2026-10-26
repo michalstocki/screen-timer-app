@@ -11,7 +11,7 @@
     <RootNamespace>ScreenTimer</RootNamespace>
     <StartupObject>ScreenTimer.Program</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.0.0</Version>
+    <Version>0.0.1</Version>
     <!-- DPI awareness is declared in app.manifest on purpose (WPF reads it from there). -->
     <NoWarn>$(NoWarn);WFAC010</NoWarn>
   </PropertyGroup>

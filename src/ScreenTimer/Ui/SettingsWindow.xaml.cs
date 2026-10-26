@@ -36,7 +36,7 @@ public partial class SettingsWindow : Window
         RefreshCodeStatus();
     }
 
-    static bool IsAdministrator()
+    internal static bool IsAdministrator()
     {
         using var identity = WindowsIdentity.GetCurrent();
         return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);

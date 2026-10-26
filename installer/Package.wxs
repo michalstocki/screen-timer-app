@@ -1,0 +1,87 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <!-- Build with: wix build Package.wxs -arch <x64|arm64|x86> -d Version=<n.n.n> -d PublishDir=<folder> -ext WixToolset.Util.wixext -->
+  <Package Name="Limit czasu przy komputerze"
+           Manufacturer="screen-timer-app"
+           Version="$(var.Version)"
+           UpgradeCode="0BC1355E-9B4A-4B17-B271-49997AD4A752"
+           Language="1045"
+           Codepage="1250"
+           Scope="perMachine">
+
+    <MajorUpgrade DowngradeErrorMessage="Zainstalowana jest nowsza wersja programu. Odinstaluj ją, aby zainstalować starszą." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="ScreenTimer" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="AppMenuFolder" Name="Limit czasu przy komputerze" />
+    </StandardDirectory>
+
+    <Feature Id="Main" Title="Limit czasu przy komputerze" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentGroupRef Id="Service" />
+      <ComponentGroupRef Id="Shortcuts" />
+    </Feature>
+
+    <!-- The tray app runs in user sessions and is not stopped with the service; end it so files can be replaced. -->
+    <CustomAction Id="EndTrayApps" Directory="INSTALLFOLDER" ExeCommand="taskkill.exe /F /IM ScreenTimer.exe"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+    <!-- After a fresh install nobody is limited yet, so open the settings (asks for administrator rights). -->
+    <CustomAction Id="OpenSettings" FileRef="ScreenTimerExe" ExeCommand="--settings"
+                  Execute="immediate" Impersonate="yes" Return="asyncNoWait" />
+
+    <InstallExecuteSequence>
+      <Custom Action="EndTrayApps" After="StopServices" />
+      <Custom Action="OpenSettings" After="InstallFinalize" Condition="NOT Installed AND UILevel &gt; 2" />
+    </InstallExecuteSequence>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PublishDir)\**">
+        <Exclude Files="$(var.PublishDir)\ScreenTimer.exe" />
+      </Files>
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="Service">
+      <!-- The service binary is this component's key file, so the exe lives here rather than in the file glob. -->
+      <Component Id="ScreenTimerMain" Directory="INSTALLFOLDER" Guid="*">
+        <File Id="ScreenTimerExe" Source="$(var.PublishDir)\ScreenTimer.exe" KeyPath="yes" />
+        <ServiceInstall Id="ScreenTimerService"
+                        Name="ScreenTimerService"
+                        DisplayName="Limit czasu przy komputerze"
+                        Description="Liczy czas pracy przy komputerze i wymusza przerwy."
+                        Type="ownProcess"
+                        Start="auto"
+                        ErrorControl="normal"
+                        Account="LocalSystem"
+                        Arguments="--service"
+                        Vital="yes">
+          <util:ServiceConfig FirstFailureActionType="restart"
+                              SecondFailureActionType="restart"
+                              ThirdFailureActionType="restart"
+                              RestartServiceDelayInSeconds="2"
+                              ResetPeriodInDays="1" />
+        </ServiceInstall>
+        <ServiceControl Id="ScreenTimerServiceControl" Name="ScreenTimerService"
+                        Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="Shortcuts">
+      <Component Id="SettingsShortcut" Directory="AppMenuFolder" Guid="*">
+        <Shortcut Id="SettingsLink" Name="Limit czasu – ustawienia" Target="[#ScreenTimerExe]"
+                  Arguments="--settings" WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="RemoveAppMenuFolder" On="uninstall" />
+        <RegistryValue Root="HKLM" Key="Software\ScreenTimer" Name="Shortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>
