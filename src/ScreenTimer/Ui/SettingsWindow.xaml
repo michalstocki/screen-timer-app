@@ -1,0 +1,38 @@
+<Window x:Class="ScreenTimer.Ui.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Limit czasu przy komputerze – ustawienia"
+        SizeToContent="Height" Width="460" ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource Backdrop}" FontFamily="Segoe UI">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/ScreenTimer;component/Ui/Theme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <StackPanel Margin="28">
+        <TextBlock Text="Kod blokady ekranu" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" />
+        <TextBlock x:Name="CodeStatus" FontSize="14" Foreground="{StaticResource TextMuted}" Margin="0,6,0,0"
+                   TextWrapping="Wrap" />
+
+        <TextBlock Text="Nowy kod" FontSize="14" Foreground="{StaticResource TextMuted}" Margin="0,22,0,6" />
+        <PasswordBox x:Name="NewCode" Style="{StaticResource CodeBox}" HorizontalContentAlignment="Left"
+                     AutomationProperties.Name="Nowy kod" />
+
+        <TextBlock Text="Powtórz kod" FontSize="14" Foreground="{StaticResource TextMuted}" Margin="0,14,0,6" />
+        <PasswordBox x:Name="RepeatCode" Style="{StaticResource CodeBox}" HorizontalContentAlignment="Left"
+                     AutomationProperties.Name="Powtórz kod" />
+
+        <TextBlock x:Name="Message" FontSize="14" Foreground="{StaticResource Danger}" TextWrapping="Wrap"
+                   Margin="0,14,0,0" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Zamknij" Style="{StaticResource SecondaryButton}" FontSize="15" Padding="18,8"
+                    Click="OnClose" />
+            <Button x:Name="SaveButton" Content="Zapisz kod" Style="{StaticResource PrimaryButton}" FontSize="15"
+                    Padding="18,8" Click="OnSave" />
+        </StackPanel>
+    </StackPanel>
+</Window>
