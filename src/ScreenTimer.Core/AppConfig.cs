@@ -1,7 +1,15 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ScreenTimer.Core;
+
+/// <summary>A Windows account chosen in the settings. The SID is the identity; the name is for people.</summary>
+public sealed class AccountRef
+{
+    public string Sid { get; set; } = "";
+    public string Name { get; set; } = "";
+}
 
 /// <summary>Administrator-controlled settings, stored in %ProgramData%\ScreenTimer\config.json.</summary>
 public sealed class AppConfig
@@ -12,13 +20,17 @@ public sealed class AppConfig
     public double WarningMinutes { get; set; } = 2;
     public int[] ExtensionMinutes { get; set; } = [5, 10, 15];
 
-    /// <summary>Accounts (DOMAIN\user, user or SID) that are never limited.</summary>
-    public string[] ExemptAccounts { get; set; } = [];
+    /// <summary>
+    /// The accounts the app runs for and whose session time it counts. Empty means nobody is limited,
+    /// so a fresh install cannot lock out an account the administrator has not chosen.
+    /// </summary>
+    public AccountRef[] LimitedAccounts { get; set; } = [];
 
     public string? CodeSalt { get; set; }
     public string? CodeHash { get; set; }
     public int CodeIterations { get; set; } = 200_000;
 
+    [JsonIgnore]
     public bool HasCode => !string.IsNullOrEmpty(CodeHash) && !string.IsNullOrEmpty(CodeSalt);
 
     public const int MinCodeLength = 4;
@@ -41,20 +53,8 @@ public sealed class AppConfig
         return CryptographicOperations.FixedTimeEquals(actual, Convert.FromBase64String(CodeHash!));
     }
 
-    public bool IsExempt(string? account, string? sid)
-    {
-        foreach (var entry in ExemptAccounts)
-        {
-            if (string.IsNullOrWhiteSpace(entry)) continue;
-            var e = entry.Trim();
-            if (sid is not null && e.Equals(sid, StringComparison.OrdinalIgnoreCase)) return true;
-            if (account is null) continue;
-            if (e.Equals(account, StringComparison.OrdinalIgnoreCase)) return true;
-            var slash = account.IndexOf('\\');
-            if (slash >= 0 && e.Equals(account[(slash + 1)..], StringComparison.OrdinalIgnoreCase)) return true;
-        }
-        return false;
-    }
+    public bool IsLimited(string? sid) =>
+        sid is not null && LimitedAccounts.Any(a => string.Equals(a.Sid, sid, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Clamps values so a hand-edited file cannot produce a nonsensical timer.</summary>
     public void Normalize()
@@ -63,7 +63,10 @@ public sealed class AppConfig
         BreakMinutes = Math.Clamp(BreakMinutes, 0.05, 24 * 60);
         WarningMinutes = Math.Clamp(WarningMinutes, 0, SessionMinutes);
         ExtensionMinutes = ExtensionMinutes.Where(m => m is > 0 and <= 240).Distinct().Order().ToArray();
-        ExemptAccounts ??= [];
+        LimitedAccounts = (LimitedAccounts ?? [])
+            .Where(a => !string.IsNullOrWhiteSpace(a?.Sid))
+            .DistinctBy(a => a.Sid, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
         CodeIterations = Math.Max(CodeIterations, 10_000);
     }
 

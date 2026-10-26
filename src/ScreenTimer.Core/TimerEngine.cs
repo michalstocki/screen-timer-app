@@ -79,6 +79,15 @@ public sealed class TimerEngine
         }
     }
 
+    /// <summary>Forgets accounts that are no longer limited, so re-adding one later starts clean.</summary>
+    public void Prune(IEnumerable<string> keep)
+    {
+        var keepSet = new HashSet<string>(keep, StringComparer.OrdinalIgnoreCase);
+        lock (gate)
+            foreach (var sid in accounts.Keys.Where(k => !keepSet.Contains(k)).ToList())
+                accounts.Remove(sid);
+    }
+
     public StatusDto GetStatus(string sid, DateTime nowUtc)
     {
         lock (gate)

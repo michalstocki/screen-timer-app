@@ -25,7 +25,6 @@ internal sealed class Supervisor
 
     AppConfig config = new();
     DateTime configStamp = DateTime.MinValue;
-    HashSet<string> exemptSids = [];
     volatile bool saveRequested;
     DateTime lastSave = DateTime.MinValue;
     Thread? thread;
@@ -38,8 +37,7 @@ internal sealed class Supervisor
         var exe = Environment.ProcessPath ?? throw new InvalidOperationException("Unknown process path");
         launcher = new AppLauncher(exe);
         engine = new TimerEngine(() => CurrentConfig(), StateStore.Load());
-        pipe = new PipeServer(engine, launcher, sid => { lock (configGate) return exemptSids.Contains(sid); },
-            () => saveRequested = true);
+        pipe = new PipeServer(engine, launcher, sid => CurrentConfig().IsLimited(sid), () => saveRequested = true);
     }
 
     public void Start()
@@ -104,10 +102,8 @@ internal sealed class Supervisor
         ReloadConfigIfChanged();
         var cfg = CurrentConfig();
 
-        var all = sessions.Snapshot();
-        var limited = all.Where(s => !cfg.IsExempt(s.Name, s.Sid)).ToList();
-        lock (configGate)
-            exemptSids = all.Where(s => cfg.IsExempt(s.Name, s.Sid)).Select(s => s.Sid).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var limited = sessions.Snapshot().Where(s => cfg.IsLimited(s.Sid)).ToList();
+        engine.Prune(cfg.LimitedAccounts.Select(a => a.Sid));
 
         var observed = new Dictionary<string, ObservedAccount>(StringComparer.OrdinalIgnoreCase);
         foreach (var s in limited)

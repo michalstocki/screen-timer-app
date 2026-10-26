@@ -248,6 +248,23 @@ public class TimerEngineTests
     }
 
     [Fact]
+    public void Pruned_account_starts_a_fresh_session_when_added_again()
+    {
+        var e = new TimerEngine(() => Config());
+        e.Tick(T0, Obs(true));
+        var now = Run(e, T0, 30 * 60, active: true);
+        Assert.Equal(Phase.Break, e.GetStatus(Sid, now).Phase);
+
+        e.Prune([]);
+        Assert.False(e.GetStatus(Sid, now).Known);
+
+        e.Tick(now.AddSeconds(1), Obs(true));
+        var s = e.GetStatus(Sid, now.AddSeconds(1));
+        Assert.Equal(Phase.Session, s.Phase);
+        Assert.Equal(30 * 60, s.RemainingSec, 1);
+    }
+
+    [Fact]
     public void Accounts_are_tracked_independently()
     {
         var e = new TimerEngine(() => Config());
@@ -303,12 +320,42 @@ public class AppConfigTests
     }
 
     [Fact]
-    public void Exempt_accounts_match_by_name_or_sid()
+    public void Nobody_is_limited_until_accounts_are_chosen()
     {
-        var cfg = new AppConfig { ExemptAccounts = ["rodzic", "S-1-5-21-9"] };
+        Assert.False(new AppConfig().IsLimited("S-1-5-21-1"));
+    }
 
-        Assert.True(cfg.IsExempt("PC\\Rodzic", "S-1-5-21-1"));
-        Assert.True(cfg.IsExempt("PC\\kid", "S-1-5-21-9"));
-        Assert.False(cfg.IsExempt("PC\\kid", "S-1-5-21-1"));
+    [Fact]
+    public void Only_chosen_accounts_are_limited_matched_by_sid()
+    {
+        var cfg = new AppConfig { LimitedAccounts = [new AccountRef { Sid = "S-1-5-21-9", Name = "PC\\kid" }] };
+
+        Assert.True(cfg.IsLimited("S-1-5-21-9"));
+        Assert.True(cfg.IsLimited("s-1-5-21-9"));
+        Assert.False(cfg.IsLimited("S-1-5-21-1"));
+        Assert.False(cfg.IsLimited(null));
+    }
+
+    [Fact]
+    public void Chosen_accounts_round_trip_through_disk_and_duplicates_collapse()
+    {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");
+        try
+        {
+            ConfigStore.Save(new AppConfig
+            {
+                LimitedAccounts =
+                [
+                    new AccountRef { Sid = "S-1-5-21-9", Name = "PC\\kid" },
+                    new AccountRef { Sid = "s-1-5-21-9", Name = "PC\\kid" },
+                    new AccountRef { Sid = " ", Name = "blank" },
+                ],
+            }, path);
+
+            var loaded = ConfigStore.Load(path);
+            var only = Assert.Single(loaded.LimitedAccounts);
+            Assert.Equal("PC\\kid", only.Name);
+        }
+        finally { File.Delete(path); }
     }
 }

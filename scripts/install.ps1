@@ -1,12 +1,13 @@
 # Installs the Screen Timer service and tray app. Run from an elevated PowerShell:
 #   .\scripts\build.ps1
-#   .\scripts\install.ps1 -ExemptAccount parent1,parent2
+#   .\scripts\install.ps1 -LimitedAccount kid1,kid2
+# Accounts can also be chosen later in the app's settings.
 #Requires -RunAsAdministrator
 param(
     [string]$PublishDir = (Join-Path (Split-Path $PSScriptRoot -Parent) 'dist\publish'),
     [string]$InstallDir = (Join-Path $env:ProgramFiles 'ScreenTimer'),
-    # Accounts that must never be limited (e.g. the parent's own account).
-    [string[]]$ExemptAccount = @()
+    # Accounts the app runs for and whose time it counts (names such as kid1 or PC\kid1).
+    [string[]]$LimitedAccount = @()
 )
 
 $ErrorActionPreference = 'Stop'
@@ -37,11 +38,17 @@ if ($LASTEXITCODE -ge 8) { throw "robocopy failed ($LASTEXITCODE)" }
 New-Item -ItemType Directory -Force $dataDir | Out-Null
 icacls $dataDir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
 
-if ($ExemptAccount.Count -gt 0) {
+if ($LimitedAccount.Count -gt 0) {
+    $accounts = @()
+    foreach ($name in $LimitedAccount) {
+        $nt = New-Object System.Security.Principal.NTAccount($name)
+        $sid = $nt.Translate([System.Security.Principal.SecurityIdentifier]).Value
+        $accounts += [pscustomobject]@{ Sid = $sid; Name = $nt.Value }
+    }
     $config = if (Test-Path $configPath) { Get-Content $configPath -Raw | ConvertFrom-Json } else { [pscustomobject]@{} }
-    $config | Add-Member -NotePropertyName ExemptAccounts -NotePropertyValue $ExemptAccount -Force
+    $config | Add-Member -NotePropertyName LimitedAccounts -NotePropertyValue $accounts -Force
     $config | ConvertTo-Json -Depth 5 | Set-Content $configPath -Encoding UTF8
-    Write-Host "Exempt accounts: $($ExemptAccount -join ', ')"
+    Write-Host "Limited accounts: $(($accounts | ForEach-Object Name) -join ', ')"
 }
 
 $exe = Join-Path $InstallDir 'ScreenTimer.exe'
@@ -57,8 +64,10 @@ sc.exe failure $serviceName reset= 86400 actions= restart/2000/restart/2000/rest
 Start-Service $serviceName
 Write-Host "Service '$serviceName' is running."
 
-$hasCode = (Test-Path $configPath) -and ((Get-Content $configPath -Raw) -match '"CodeHash"\s*:\s*"[^"]+"')
-if (-not $hasCode) {
-    Write-Host 'No lock code is set yet - opening settings so you can set one.'
+$text = if (Test-Path $configPath) { Get-Content $configPath -Raw } else { '' }
+$hasCode = $text -match '"CodeHash"\s*:\s*"[^"]+"'
+$hasAccounts = $text -match '"Sid"\s*:\s*"S-'
+if (-not ($hasCode -and $hasAccounts)) {
+    Write-Host 'Lock code or limited accounts are not set yet - opening settings.'
     Start-Process $exe -ArgumentList '--settings'
 }

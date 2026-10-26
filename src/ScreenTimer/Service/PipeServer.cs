@@ -16,16 +16,16 @@ internal sealed class PipeServer
 {
     readonly TimerEngine engine;
     readonly AppLauncher launcher;
-    readonly Func<string, bool> isExempt;
+    readonly Func<string, bool> isLimited;
     readonly Action stateChanged;
     readonly CancellationTokenSource cts = new();
     Task? loop;
 
-    public PipeServer(TimerEngine engine, AppLauncher launcher, Func<string, bool> isExempt, Action stateChanged)
+    public PipeServer(TimerEngine engine, AppLauncher launcher, Func<string, bool> isLimited, Action stateChanged)
     {
         this.engine = engine;
         this.launcher = launcher;
-        this.isExempt = isExempt;
+        this.isLimited = isLimited;
         this.stateChanged = stateChanged;
     }
 
@@ -119,8 +119,8 @@ internal sealed class PipeServer
     Response Process(Request request, string sid)
     {
         var now = DateTime.UtcNow;
-        if (isExempt(sid))
-            return new Response { Status = engine.GetStatus("exempt:" + sid, now) };
+        if (!isLimited(sid))
+            return new Response { Status = engine.GetStatus("unlimited:" + sid, now) };
 
         if (request.Cmd == Protocol.ExtendCommand)
         {

@@ -7,7 +7,8 @@ i po 30 minutach przysłania ekran na 30-minutową przerwę.
 
 | Wymaganie | Realizacja |
 |---|---|
-| Start przy logowaniu | Usługa Windows (SYSTEM, start automatyczny) uruchamia aplikację w zasobniku w sesji każdego zalogowanego użytkownika |
+| Start przy logowaniu | Usługa Windows (SYSTEM, start automatyczny) uruchamia aplikację w zasobniku w sesji każdego zalogowanego użytkownika z listy kont objętych limitem |
+| Wybór kont | W ustawieniach (tray → „Ustawienia (administrator)…") zaznaczasz konta, dla których aplikacja ma się uruchamiać i liczyć czas. Niezaznaczone konta nie są ani blokowane, ani liczone |
 | 30 minut po zalogowaniu | Nowa sesja trwa 30 min (`SessionMinutes` w konfiguracji) |
 | Czas w zasobniku | Ikona w zasobniku pokazuje liczbę pozostałych minut (poniżej minuty sekundy); kolor: niebieski, pomarańczowy (≤ 5 min), czerwony (ostrzeżenie), zielony (przerwa). Pełny czas jest w podpowiedzi |
 | Ostrzeżenie | Na 2 minuty przed końcem pojawia się okno z odliczaniem i przypomnieniem o zapisaniu zmian |
@@ -39,12 +40,14 @@ Wymagane: PowerShell jako administrator. Na docelowym komputerze nie trzeba inst
 
 ```powershell
 .\scripts\build.ps1                                   # publikacja do dist\publish (x64 lub arm64 wg bieżącego komputera)
-.\scripts\install.ps1 -ExemptAccount rodzic           # instalacja usługi; konta wyłączone z limitu
+.\scripts\install.ps1 -LimitedAccount dziecko1,dziecko2   # instalacja usługi; konta objęte limitem (opcjonalnie)
 ```
 
-**Uwaga:** każde konto, którego nie wymienisz w `-ExemptAccount`, podlega limitowi, także konto administratora, z którego instalujesz. Wpisz tam swoje konto, jeśli nie chcesz sam dostać blokady po 30 minutach.
+Domyślnie żadne konto nie jest objęte limitem, więc świeża instalacja nikogo nie zablokuje, dopóki nie wybierzesz kont (parametrem `-LimitedAccount` albo w ustawieniach). Konta zapisywane są jako SID, więc zmiana nazwy konta niczego nie psuje.
 
-Instalator otworzy okno ustawień, jeśli kod nie jest jeszcze ustawiony. Bez kodu nie da się przedłużyć przerwy.
+Instalator otworzy okno ustawień, jeśli kod lub konta nie są jeszcze ustawione. Bez kodu nie da się przedłużyć przerwy.
+
+Odznaczenie konta kasuje jego zapisany stan (sesję i przerwę); po ponownym zaznaczeniu zaczyna od pełnej sesji.
 
 Odinstalowanie: `.\scripts\uninstall.ps1` (z `-RemoveData` usuwa też kod i stan).
 
@@ -58,9 +61,11 @@ Odinstalowanie: `.\scripts\uninstall.ps1` (z `-RemoveData` usuwa też kod i stan
   "BreakMinutes": 30,
   "WarningMinutes": 2,
   "ExtensionMinutes": [5, 10, 15],
-  "ExemptAccounts": ["rodzic"]
+  "LimitedAccounts": [{ "Sid": "S-1-5-21-...", "Name": "PC\\dziecko1" }]
 }
 ```
+
+`LimitedAccounts` najwygodniej zmieniać w oknie ustawień. Starsze pole `ExemptAccounts` nie jest już używane.
 
 Dziennik usługi: `%ProgramData%\ScreenTimer\service.log`. Dziennik błędów interfejsu: `%LOCALAPPDATA%\ScreenTimer\app.log`.
 
