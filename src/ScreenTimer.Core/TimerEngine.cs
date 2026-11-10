@@ -178,6 +178,21 @@ public sealed class TimerEngine
         InactiveSinceUtc = active ? null : now,
     };
 
+    /// <summary>
+    /// Records that the account stopped being active at <paramref name="since"/>. Leaving once the
+    /// warning has begun (closing the lid a moment before the lock) counts as the session being over,
+    /// so the break starts at that moment instead of after the user returns and uses up the rest.
+    /// </summary>
+    static void MarkInactive(AccountState s, DateTime since, AppConfig cfg)
+    {
+        s.InactiveSinceUtc = since;
+        if (s.Phase != Phase.Session || s.SessionRemainingSec > cfg.WarningMinutes * 60) return;
+
+        s.Phase = Phase.Break;
+        s.SessionRemainingSec = 0;
+        s.BreakEndsUtc = since.AddMinutes(cfg.BreakMinutes);
+    }
+
     static void Advance(AccountState s, DateTime now, bool active, AppConfig cfg)
     {
         var prev = s.LastTickUtc;
@@ -186,7 +201,7 @@ public sealed class TimerEngine
 
         // After sleep or a service restart the elapsed time was not observed: count it as inactivity.
         if (dt > MaxTickGapSec && s.InactiveSinceUtc is null)
-            s.InactiveSinceUtc = prev;
+            MarkInactive(s, prev, cfg);
         var wasActive = s.InactiveSinceUtc is null;
 
         var breakJustEnded = false;
@@ -202,7 +217,7 @@ public sealed class TimerEngine
 
         if (!active)
         {
-            if (wasActive) s.InactiveSinceUtc = now;
+            if (wasActive) MarkInactive(s, now, cfg);
             return;
         }
 

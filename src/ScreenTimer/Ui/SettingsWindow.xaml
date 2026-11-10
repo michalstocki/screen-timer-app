@@ -15,6 +15,29 @@
                 <Setter Property="FontSize" Value="15" />
                 <Setter Property="Margin" Value="0,5" />
             </Style>
+
+            <Style x:Key="FieldLabel" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Margin" Value="0,5" />
+            </Style>
+
+            <Style x:Key="FieldUnit" TargetType="TextBlock" BasedOn="{StaticResource FieldLabel}">
+                <Setter Property="Foreground" Value="{StaticResource TextMuted}" />
+                <Setter Property="Margin" Value="8,5,0,5" />
+            </Style>
+
+            <Style x:Key="NumberBox" TargetType="TextBox">
+                <Setter Property="Background" Value="{StaticResource Field}" />
+                <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+                <Setter Property="CaretBrush" Value="{StaticResource TextPrimary}" />
+                <Setter Property="BorderBrush" Value="#FF3B4656" />
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="Padding" Value="8,5" />
+                <Setter Property="Margin" Value="0,4" />
+                <Setter Property="HorizontalContentAlignment" Value="Right" />
+            </Style>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -38,6 +61,48 @@
         <TextBlock x:Name="AccountsNote" FontSize="13" Foreground="{StaticResource TextMuted}" Margin="0,8,0,0"
                    TextWrapping="Wrap"
                    Text="Limit chroni konta standardowe. Administrator może zatrzymać usługę, więc nie zaznaczaj własnego konta administratora, jeśli nie chcesz sam dostawać blokady." />
+
+        <TextBlock Text="Czasy" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"
+                   Margin="0,28,0,0" />
+        <TextBlock Text="Trwające odliczanie sesji i przerwy nie zmienia się; nowe wartości obowiązują od następnej sesji lub przerwy."
+                   FontSize="14" Foreground="{StaticResource TextMuted}" Margin="0,6,0,0" TextWrapping="Wrap" />
+
+        <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="110" />
+                <ColumnDefinition Width="46" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Czas sesji" Style="{StaticResource FieldLabel}" />
+            <TextBox Grid.Row="0" Grid.Column="1" x:Name="SessionBox" Style="{StaticResource NumberBox}"
+                     AutomationProperties.Name="Czas sesji w minutach" />
+            <TextBlock Grid.Row="0" Grid.Column="2" Text="min" Style="{StaticResource FieldUnit}" />
+
+            <TextBlock Grid.Row="1" Text="Czas przerwy" Style="{StaticResource FieldLabel}" />
+            <TextBox Grid.Row="1" Grid.Column="1" x:Name="BreakBox" Style="{StaticResource NumberBox}"
+                     AutomationProperties.Name="Czas przerwy w minutach" />
+            <TextBlock Grid.Row="1" Grid.Column="2" Text="min" Style="{StaticResource FieldUnit}" />
+
+            <TextBlock Grid.Row="2" Text="Ostrzeżenie przed końcem sesji" Style="{StaticResource FieldLabel}" />
+            <TextBox Grid.Row="2" Grid.Column="1" x:Name="WarningBox" Style="{StaticResource NumberBox}"
+                     AutomationProperties.Name="Ostrzeżenie w minutach" />
+            <TextBlock Grid.Row="2" Grid.Column="2" Text="min" Style="{StaticResource FieldUnit}" />
+
+            <TextBlock Grid.Row="3" Text="Długości przedłużeń" Style="{StaticResource FieldLabel}" />
+            <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" x:Name="ExtensionsBox"
+                     Style="{StaticResource NumberBox}" HorizontalContentAlignment="Left"
+                     ToolTip="Minuty oddzielone przecinkami, np. 5, 10, 15"
+                     AutomationProperties.Name="Długości przedłużeń w minutach" />
+        </Grid>
+        <TextBlock Text="Wyjście z komputera w ostatnich minutach sesji (w czasie ostrzeżenia) od razu zaczyna przerwę. Przedłużenia: minuty oddzielone przecinkami."
+                   FontSize="13" Foreground="{StaticResource TextMuted}" Margin="0,8,0,0" TextWrapping="Wrap" />
 
         <TextBlock Text="Kod blokady ekranu" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"
                    Margin="0,28,0,0" />

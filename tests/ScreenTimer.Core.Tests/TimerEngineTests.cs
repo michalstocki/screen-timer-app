@@ -106,6 +106,63 @@ public class TimerEngineTests
     }
 
     [Fact]
+    public void Leaving_during_the_warning_starts_the_break_at_that_moment()
+    {
+        var e = new TimerEngine(() => Config());
+        e.Tick(T0, Obs(true));
+        var now = Run(e, T0, 29 * 60, active: true); // one minute left, inside the 2 minute warning
+        now = Run(e, now, 29 * 60, active: false);
+        now = Run(e, now, 1, active: true);
+
+        var s = e.GetStatus(Sid, now);
+        Assert.Equal(Phase.Break, s.Phase);
+        Assert.Equal(60, s.RemainingSec, 2); // the break began when the user left, so 1 min of it remains
+    }
+
+    [Fact]
+    public void Leaving_during_the_warning_for_a_full_break_gives_a_fresh_session()
+    {
+        var e = new TimerEngine(() => Config());
+        e.Tick(T0, Obs(true));
+        var now = Run(e, T0, 29 * 60, active: true);
+        now = Run(e, now, 30 * 60, active: false);
+        now = Run(e, now, 1, active: true);
+
+        var s = e.GetStatus(Sid, now);
+        Assert.Equal(Phase.Session, s.Phase);
+        Assert.Equal(30 * 60, s.RemainingSec, 2);
+    }
+
+    [Fact]
+    public void Lid_closed_during_the_warning_counts_the_sleep_as_break()
+    {
+        var e = new TimerEngine(() => Config());
+        e.Tick(T0, Obs(true));
+        var now = Run(e, T0, 29 * 60 + 30, active: true); // 30 s left
+
+        now = now.AddMinutes(29); // laptop slept; no ticks
+        e.Tick(now, Obs(true));
+
+        var s = e.GetStatus(Sid, now);
+        Assert.Equal(Phase.Break, s.Phase);
+        Assert.Equal(60, s.RemainingSec, 2); // break began when the lid closed, so 1 min is left
+    }
+
+    [Fact]
+    public void Leaving_before_the_warning_only_pauses_the_session()
+    {
+        var e = new TimerEngine(() => Config());
+        e.Tick(T0, Obs(true));
+        var now = Run(e, T0, 27 * 60, active: true); // three minutes left, outside the warning
+        now = Run(e, now, 20 * 60, active: false);
+        now = Run(e, now, 1, active: true);
+
+        var s = e.GetStatus(Sid, now);
+        Assert.Equal(Phase.Session, s.Phase);
+        Assert.Equal(3 * 60, s.RemainingSec, 2);
+    }
+
+    [Fact]
     public void Break_keeps_running_while_logged_off_and_blocks_on_return()
     {
         var e = new TimerEngine(() => Config());
@@ -279,6 +336,64 @@ public class TimerEngineTests
 
         Assert.Equal(20 * 60, e.GetStatus("A", now).RemainingSec, 2);
         Assert.Equal(30 * 60, e.GetStatus("B", now).RemainingSec, 2);
+    }
+}
+
+public class TimingInputTests
+{
+    [Fact]
+    public void Valid_values_are_applied_with_extensions_sorted_and_deduplicated()
+    {
+        var cfg = new AppConfig();
+
+        Assert.True(TimingInput.TryApply(cfg, "45", "20", "3", "15, 5; 10 5", out var error));
+
+        Assert.Equal("", error);
+        Assert.Equal(45, cfg.SessionMinutes);
+        Assert.Equal(20, cfg.BreakMinutes);
+        Assert.Equal(3, cfg.WarningMinutes);
+        Assert.Equal([5, 10, 15], cfg.ExtensionMinutes);
+    }
+
+    [Theory]
+    [InlineData("7,5")]
+    [InlineData("7.5")]
+    public void Decimal_minutes_accept_comma_and_dot(string typed)
+    {
+        var cfg = new AppConfig();
+
+        Assert.True(TimingInput.TryApply(cfg, typed, "30", "2", "5", out _));
+        Assert.Equal(7.5, cfg.SessionMinutes);
+    }
+
+    [Theory]
+    [InlineData("0", "30", "2", "5")]
+    [InlineData("abc", "30", "2", "5")]
+    [InlineData("30", "-5", "2", "5")]
+    [InlineData("30", "30", "31", "5")]
+    [InlineData("30", "30", "2", "")]
+    [InlineData("30", "30", "2", "5, x")]
+    [InlineData("30", "30", "2", "500")]
+    [InlineData("30", "30", "2", "0")]
+    [InlineData("99999", "30", "2", "5")]
+    public void Invalid_values_are_refused_and_leave_the_config_untouched(
+        string session, string breakTime, string warning, string extensions)
+    {
+        var cfg = new AppConfig();
+
+        Assert.False(TimingInput.TryApply(cfg, session, breakTime, warning, extensions, out var error));
+
+        Assert.NotEqual("", error);
+        Assert.Equal(30, cfg.SessionMinutes);
+        Assert.Equal(30, cfg.BreakMinutes);
+        Assert.Equal(2, cfg.WarningMinutes);
+        Assert.Equal([5, 10, 15], cfg.ExtensionMinutes);
+    }
+
+    [Fact]
+    public void Zero_warning_is_allowed()
+    {
+        Assert.True(TimingInput.TryApply(new AppConfig(), "30", "30", "0", "5", out _));
     }
 }
 

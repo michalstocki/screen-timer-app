@@ -9,6 +9,7 @@ i po 30 minutach przysłania ekran na 30-minutową przerwę.
 |---|---|
 | Start przy logowaniu | Usługa Windows (SYSTEM, start automatyczny) uruchamia aplikację w zasobniku w sesji każdego zalogowanego użytkownika z listy kont objętych limitem |
 | Wybór kont | W ustawieniach (tray → „Ustawienia (administrator)…") zaznaczasz konta, dla których aplikacja ma się uruchamiać i liczyć czas. Niezaznaczone konta nie są ani blokowane, ani liczone |
+| Czasy | W tych samych ustawieniach wpisujesz czas sesji, czas przerwy, ostrzeżenie przed końcem sesji (0 wyłącza) i długości przedłużeń (minuty oddzielone przecinkami, domyślnie 5, 10, 15). Trwające odliczanie się nie zmienia, nowe wartości działają od następnej sesji lub przerwy |
 | 30 minut po zalogowaniu | Nowa sesja trwa 30 min (`SessionMinutes` w konfiguracji) |
 | Czas w zasobniku | Ikona w zasobniku pokazuje liczbę pozostałych minut (poniżej minuty sekundy); kolor: niebieski, pomarańczowy (≤ 5 min), czerwony (ostrzeżenie), zielony (przerwa). Pełny czas jest w podpowiedzi |
 | Ostrzeżenie | Na 2 minuty przed końcem pojawia się okno z odliczaniem i przypomnieniem o zapisaniu zmian |
@@ -23,6 +24,7 @@ i po 30 minutach przysłania ekran na 30-minutową przerwę.
 - Stan jest osobny dla każdego konta Windows.
 - Czas sesji biegnie tylko, gdy konto jest aktywne. Blokada ekranu, wylogowanie, przełączenie na inne konto i uśpienie go wstrzymują.
 - Nieobecność trwająca co najmniej tyle co przerwa (30 min) liczy się jako odpoczynek: po powrocie zaczyna się pełna nowa sesja. Krótsza nieobecność tylko wstrzymuje licznik.
+- Wyjście (zamknięcie klapy, blokada, wylogowanie, uśpienie) w oknie ostrzeżenia, czyli w ostatnich 2 minutach sesji (`WarningMinutes`), od razu zaczyna przerwę. Jeśli użytkownik wróci po 29 minutach, przerwie brakuje już tylko minuty, a nie 30 minut od nowa.
 - Po przedłużeniu o 5/10/15 min, a potem upływie tego czasu, następuje kolejna pełna przerwa.
 
 ### Ochrona przed obejściem
@@ -71,7 +73,7 @@ Odinstalowanie: `.\scripts\uninstall.ps1` (z `-RemoveData` usuwa też kod i stan
 }
 ```
 
-`LimitedAccounts` najwygodniej zmieniać w oknie ustawień. Starsze pole `ExemptAccounts` nie jest już używane.
+Wszystkie te pola najwygodniej zmieniać w oknie ustawień. Starsze pole `ExemptAccounts` nie jest już używane.
 
 Dziennik usługi: `%ProgramData%\ScreenTimer\service.log`. Dziennik błędów interfejsu: `%LOCALAPPDATA%\ScreenTimer\app.log`.
 

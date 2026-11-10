@@ -30,10 +30,21 @@ public partial class SettingsWindow : Window
         {
             Message.Text = "Zmiana ustawień wymaga uprawnień administratora systemu. Uruchom ustawienia ponownie jako administrator.";
             AccountList.IsEnabled = NewCode.IsEnabled = RepeatCode.IsEnabled = SaveButton.IsEnabled = false;
+            SessionBox.IsEnabled = BreakBox.IsEnabled = WarningBox.IsEnabled = ExtensionsBox.IsEnabled = false;
         }
 
         LoadAccounts();
+        LoadTimings();
         RefreshCodeStatus();
+    }
+
+    void LoadTimings()
+    {
+        var config = ConfigStore.Load();
+        SessionBox.Text = TimingInput.FormatMinutes(config.SessionMinutes);
+        BreakBox.Text = TimingInput.FormatMinutes(config.BreakMinutes);
+        WarningBox.Text = TimingInput.FormatMinutes(config.WarningMinutes);
+        ExtensionsBox.Text = TimingInput.FormatExtensions(config.ExtensionMinutes);
     }
 
     internal static bool IsAdministrator()
@@ -112,6 +123,13 @@ public partial class SettingsWindow : Window
         {
             SecureStorage.EnsureDirectory();
             var config = ConfigStore.Load();
+            if (!TimingInput.TryApply(config, SessionBox.Text, BreakBox.Text, WarningBox.Text,
+                    ExtensionsBox.Text, out var timingError))
+            {
+                Fail(timingError);
+                return;
+            }
+
             config.LimitedAccounts = items
                 .Where(i => i.IsSelected)
                 .Select(i => new AccountRef { Sid = i.Sid, Name = i.Name })
@@ -125,6 +143,7 @@ public partial class SettingsWindow : Window
             return;
         }
 
+        LoadTimings(); // show the values as saved (duplicates dropped, sorted)
         NewCode.Clear();
         RepeatCode.Clear();
         Message.Foreground = (Brush)FindResource("Accent");
