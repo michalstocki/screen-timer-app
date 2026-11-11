@@ -29,7 +29,7 @@ public partial class SettingsWindow : Window
         if (!IsAdministrator())
         {
             Message.Text = "Zmiana ustawień wymaga uprawnień administratora systemu. Uruchom ustawienia ponownie jako administrator.";
-            AccountList.IsEnabled = NewCode.IsEnabled = RepeatCode.IsEnabled = SaveButton.IsEnabled = false;
+            AccountList.IsEnabled = CodeButton.IsEnabled = SaveButton.IsEnabled = false;
             SessionBox.IsEnabled = BreakBox.IsEnabled = WarningBox.IsEnabled = ExtensionsBox.IsEnabled = false;
         }
 
@@ -87,38 +87,34 @@ public partial class SettingsWindow : Window
         AccountList.ItemsSource = items;
     }
 
+    bool HasCode()
+    {
+        try { return ConfigStore.Load().HasCode; }
+        catch (UnauthorizedAccessException) { return false; }
+    }
+
     void RefreshCodeStatus()
     {
-        try
-        {
-            CodeStatus.Text = ConfigStore.Load().HasCode
-                ? "Kod jest ustawiony. Wpisz nowy, aby go zmienić; zostaw puste, aby go nie zmieniać."
-                : "Kod nie jest jeszcze ustawiony. Bez niego nie można przedłużyć czasu na ekranie blokady.";
-        }
-        catch (UnauthorizedAccessException)
-        {
-            CodeStatus.Text = "Brak dostępu do pliku ustawień.";
-        }
+        var hasCode = HasCode();
+        CodeStatus.Text = hasCode
+            ? "Kod jest ustawiony."
+            : "Kod nie jest jeszcze ustawiony. Bez niego nie można przedłużyć czasu na ekranie blokady.";
+        CodeStatus.Foreground = (Brush)FindResource(hasCode ? "TextMuted" : "Danger");
+        CodeButton.Content = hasCode ? "Zmień kod…" : "Ustaw kod…";
+    }
+
+    void OnChangeCode(object sender, RoutedEventArgs e)
+    {
+        var dialog = new CodeWindow(HasCode()) { Owner = this };
+        if (dialog.ShowDialog() != true) return;
+
+        RefreshCodeStatus();
+        Message.Foreground = (Brush)FindResource("Accent");
+        Message.Text = "Kod został zapisany.";
     }
 
     void OnSave(object sender, RoutedEventArgs e)
     {
-        var code = NewCode.Password;
-        var changeCode = code.Length > 0 || RepeatCode.Password.Length > 0;
-        if (changeCode)
-        {
-            if (code.Length < AppConfig.MinCodeLength)
-            {
-                Fail($"Kod musi mieć co najmniej {AppConfig.MinCodeLength} znaki.");
-                return;
-            }
-            if (code != RepeatCode.Password)
-            {
-                Fail("Wpisane kody nie są takie same.");
-                return;
-            }
-        }
-
         try
         {
             SecureStorage.EnsureDirectory();
@@ -134,7 +130,6 @@ public partial class SettingsWindow : Window
                 .Where(i => i.IsSelected)
                 .Select(i => new AccountRef { Sid = i.Sid, Name = i.Name })
                 .ToArray();
-            if (changeCode) config.SetCode(code);
             ConfigStore.Save(config);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -144,13 +139,10 @@ public partial class SettingsWindow : Window
         }
 
         LoadTimings(); // show the values as saved (duplicates dropped, sorted)
-        NewCode.Clear();
-        RepeatCode.Clear();
         Message.Foreground = (Brush)FindResource("Accent");
         Message.Text = items.Any(i => i.IsSelected)
             ? "Ustawienia zostały zapisane."
             : "Ustawienia zapisane. Żadne konto nie jest zaznaczone, więc limit czasu jest wyłączony.";
-        RefreshCodeStatus();
     }
 
     void Fail(string text)

@@ -18,7 +18,7 @@ i po 30 minutach przysłania ekran na 30-minutową przerwę.
 | Przełączenie konta | Przycisk „Zablokuj / przełącz konto" (systemowe Zablokuj, Win+L) |
 | Odliczanie przerwy | Na ekranie blokady widać czas do końca 30-minutowej przerwy |
 | Wylogowanie w trakcie przerwy | Przerwa liczy się zegarem rzeczywistym, także po wylogowaniu i restarcie. Po powrocie przed jej końcem blokada wraca z dalszym odliczaniem |
-| Kod | Zapisywany jako hasz PBKDF2 w `%ProgramData%\ScreenTimer\config.json`. Zmiana: tray → „Ustawienia (administrator)…", wymaga UAC |
+| Kod | Zapisywany jako hasz PBKDF2 w `%ProgramData%\ScreenTimer\config.json`. Zmiana: tray → „Ustawienia (administrator)…", wymaga UAC, przycisk „Ustaw kod…" / „Zmień kod…" otwiera osobne okno. Dopóki kod nie jest ustawiony, ustawienia o tym przypominają |
 
 ### Reguły liczenia czasu
 - Stan jest osobny dla każdego konta Windows.
