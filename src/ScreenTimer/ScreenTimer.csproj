@@ -14,6 +14,8 @@
     <Version>0.0.1</Version>
     <!-- DPI awareness is declared in app.manifest on purpose (WPF reads it from there). -->
     <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <!-- The app is self-contained, so every framework language folder ships with it; keep only Polish. -->
+    <SatelliteResourceLanguages>pl;en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,5 +26,13 @@
   <ItemGroup>
     <ProjectReference Include="..\ScreenTimer.Core\ScreenTimer.Core.csproj" />
   </ItemGroup>
+
+  <!-- Crash-dump and debugger helpers of the bundled runtime and the unused HTTP/3 library. -->
+  <Target Name="RemoveUnusedRuntimeFiles" AfterTargets="Publish">
+    <ItemGroup>
+      <UnusedRuntimeFile Include="$(PublishDir)createdump.exe;$(PublishDir)mscordbi.dll;$(PublishDir)mscordaccore*.dll;$(PublishDir)msquic.dll" />
+    </ItemGroup>
+    <Delete Files="@(UnusedRuntimeFile)" />
+  </Target>
 
 </Project>
